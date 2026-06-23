@@ -1,0 +1,370 @@
+//@version=5
+indicator("Dual EMA Cloud", overlay=true)
+
+// Input settings for the first EMA cloud (Red)
+emaPeriod1 = 3//input.int(3, title="EMA Period 1")
+emaPeriod2 = 5//input.int(5, title="EMA Period 2")
+emaPeriod3 = 8//input.int(8, title="EMA Period 3")
+emaPeriod4 = 10//input.int(10, title="EMA Period 4")
+emaPeriod5 = 15//input.int(15, title="EMA Period 5")
+
+// Input settings for the second EMA cloud (Green)
+emaPeriod6 = 30//input.int(30, title="EMA Period 6")
+emaPeriod7 = 40//input.int(40, title="EMA Period 7")
+emaPeriod8 = 50//input.int(50, title="EMA Period 8")
+emaPeriod9 = 60//input.int(60, title="EMA Period 9")
+emaPeriod10 = 65//input.int(65, title="EMA Period 10")
+
+// Calculate EMAs for the first cloud
+ema1 = ta.ema(close, emaPeriod1)
+ema2 = ta.ema(close, emaPeriod2)
+ema3 = ta.ema(close, emaPeriod3)
+ema4 = ta.ema(close, emaPeriod4)
+ema5 = ta.ema(close, emaPeriod5)
+
+// Calculate EMAs for the second cloud
+ema6 = ta.ema(close, emaPeriod6)
+ema7 = ta.ema(close, emaPeriod7)
+ema8 = ta.ema(close, emaPeriod8)
+ema9 = ta.ema(close, emaPeriod9)
+ema10 = ta.ema(close, emaPeriod10)
+
+// Plot the EMAs for the first cloud (Red)
+ema1_plot = plot(ema1, color=color.red, linewidth=1, title="EMA 1 (Red)",display = display.none)
+ema2_plot = plot(ema2, color=color.red, linewidth=1, title="EMA 2 (Red)",display = display.none)
+ema3_plot = plot(ema3, color=color.red, linewidth=1, title="EMA 3 (Red)",display = display.none)
+ema4_plot = plot(ema4, color=color.red, linewidth=1, title="EMA 4 (Red)",display = display.none)
+ema5_plot = plot(ema5, color=color.red, linewidth=1, title="EMA 5 (Red)",display = display.none)
+
+// Plot the EMAs for the second cloud (Green)
+ema6_plot = plot(ema6, color=color.green, linewidth=1, title="EMA 6 (Green)",display = display.none)
+ema7_plot = plot(ema7, color=color.green, linewidth=1, title="EMA 7 (Green)",display = display.none)
+ema8_plot = plot(ema8, color=color.green, linewidth=1, title="EMA 8 (Green)",display = display.none)
+ema9_plot = plot(ema9, color=color.green, linewidth=1, title="EMA 9 (Green)",display = display.none)
+ema10_plot = plot(ema10, color=color.green, linewidth=1, title="EMA 10 (Green)",display = display.none)
+
+// Fill the areas between EMAs for the first cloud (Red)
+fill(ema1_plot, ema2_plot, color=color.green, transp=70)
+fill(ema2_plot, ema3_plot, color=color.green, transp=70)
+fill(ema3_plot, ema4_plot, color=color.green, transp=70)
+fill(ema4_plot, ema5_plot, color=color.green, transp=70)
+
+// Fill the areas between EMAs for the second cloud (Green)
+fill(ema6_plot, ema7_plot, color=color.red, transp=70)
+fill(ema7_plot, ema8_plot, color=color.red, transp=70)
+fill(ema8_plot, ema9_plot, color=color.red, transp=70)
+fill(ema9_plot, ema10_plot, color=color.red, transp=70)
+
+
+length1 = 20//input.int(20, "Length", minval = 2)
+src = close//input.source(close, "Source")
+factor = 2// input.float(2.0, "Multiplier", minval = 0.25, step = 0.25)
+volStop(src, atrlen, atrfactor) =>
+    if not na(src)
+        var max     = src
+        var min     = src
+        var uptrend = true
+        var float stop    = na
+        atrM        = nz(ta.atr(atrlen) * atrfactor, ta.tr)
+        max         := math.max(max, src)
+        min         := math.min(min, src)
+        stop        := nz(uptrend ? math.max(stop, max - atrM) : math.min(stop, min + atrM), src)
+        uptrend     := src - stop >= 0.0
+        if uptrend != nz(uptrend[1], true)
+            max    := src
+            min    := src
+            stop   := uptrend ? max - atrM : min + atrM
+        [stop, uptrend]
+
+[vStop, uptrend] = volStop(src, length1, factor)
+
+plot(vStop, "", style=plot.style_cross, color= uptrend ? na : #F44336,linewidth = 2)
+
+
+//Input
+source = close//input(title='Source', defval=close)
+comparativeTickerId = 'NSE:NIFTY'//input.symbol('NSE:NIFTY', title='Comparative Symbol')
+length = 123//input.int(123, minval=1, title='Period')
+showZeroLine = true//input(defval=true, title='Show Zero Line')
+showRefDateLbl = true//input(defval=true, title='Show Reference Label')
+toggleRSColor = true//input(defval=true, title='Toggle RS color on crossovers')
+showRSTrend = false//input.bool(defval=false, title='RS Trend,', group='RS Trend', inline='RS Trend')
+base = 5//input.int(title='Range', minval=1, defval=5, group='RS Trend', inline='RS Trend')
+showMA = false//input.bool(defval=false, title='', group='RS Mean', inline='RS Mean')
+lengthRSMA = 50//input.int(50, minval=1, title='Period', group='RS Mean', inline='RS Mean')
+showMAColor = true//input.bool(defval=true, title='Trend Color', group='RS Mean', inline='RS Mean')
+showBubbles = true//input.bool(defval=true, title='', group='Price Confirmation', inline='Color')
+lengthPriceSMA = 50//input.int(50, minval=1, title='Period', group='Price Confirmation', inline='Color')
+bullishColor = color.new(color.green, 85)//input.color(color.new(color.green, 85), title='+ve', group='Price Confirmation', inline='Color')
+bearishColor = color.new(color.red, 85)//input.color(color.new(color.red, 85), title='-ve', group='Price Confirmation', inline='Color')
+
+//Set up
+baseSymbol = request.security(syminfo.tickerid, timeframe.period, source)
+comparativeSymbol = request.security(comparativeTickerId, timeframe.period, source)
+
+//Calculations
+res = baseSymbol / baseSymbol[length] / (comparativeSymbol / comparativeSymbol[length]) - 1
+resColor = toggleRSColor ? res > 0 ? color.green : color.red : color.blue
+refDay = showRefDateLbl and barstate.islast ? dayofmonth(time[length]) : na
+refMonth = showRefDateLbl and barstate.islast ? month(time[length]) : na
+refYear = showRefDateLbl and barstate.islast ? year(time[length]) : na
+refLabelStyle = res[length] > 0 ? label.style_label_up : label.style_label_down
+//refDateLabel = showRefDateLbl and barstate.islast ? label.new(bar_index - length, 0, text='RS-' + str.tostring(length) + ' reference, ' + str.tostring(refDay) + '-' + str.tostring(refMonth) + '-' + str.tostring(refYear), color=color.blue, style=refLabelStyle, yloc=yloc.price) : na
+y0 = res - res[base]
+angle0 = math.atan(y0 / base)  // radians
+zeroLineColor = showRSTrend ? angle0 > 0.0 ? color.green : color.maroon : color.maroon
+sma_res = ta.sma(res, lengthRSMA)
+//Confirm symbol trend with a simple logic
+sma_symb = ta.sma(baseSymbol, lengthPriceSMA)
+pos_div = ta.rising(sma_symb, 3) and baseSymbol >= sma_symb
+neg_div = ta.falling(sma_symb, 3) and baseSymbol < sma_symb
+div_started = pos_div or neg_div
+div_color = div_started ? pos_div ? bullishColor: neg_div ? bearishColor : na : na
+ma_rising = ta.rising(sma_res, 3)
+ma_falling = ta.falling(sma_res, 3)
+ma_color = showMAColor and ma_rising ? color.green : showMAColor and ma_falling ? color.red : color.gray
+
+
+plotshape(res > 0 , "bull trend",style = shape.square,location = location.bottom,color = color.green,size = size.normal)
+plotshape(res < 0 , "bear trend",style = shape.square,location = location.bottom,color = color.red,size = size.normal)
+
+
+
+lb = 5//input.int(5, title='Left Bars', minval=1)
+rb = 5//input.int(5, title='Right Bars', minval=1)
+showsupres = true//input.bool(true, title='Support/Resistance', inline='srcol')
+supcol = color.lime//input.color(color.lime, title='', inline='srcol')
+rescol = color.red//input.color(color.red, title='', inline='srcol')
+srlinestyle = line.style_solid//input.string(line.style_solid, title='Line Style/Width', options=[line.style_solid, line.style_dashed, line.style_dotted], inline='style')
+srlinewidth = 3//input.int(3, title='', minval=1, maxval=5, inline='style')
+changebarcol = true//input.bool(true, title='Change Bar Color', inline='bcol')
+bcolup = color.blue//input.color(color.blue, title='', inline='bcol')
+bcoldn = color.black//input.color(color.black, title='', inline='bcol')
+
+ph = ta.pivothigh(lb, rb)
+pl = ta.pivotlow(lb, rb)
+
+iff_1 = pl ? -1 : na  // Trend direction
+hl = ph ? 1 : iff_1
+iff_2 = pl ? pl : na  // similar to zigzag but may have multiple highs/lows
+zz = ph ? ph : iff_2
+valuewhen_1 = ta.valuewhen(hl, hl, 1)
+valuewhen_2 = ta.valuewhen(zz, zz, 1)
+zz := pl and hl == -1 and valuewhen_1 == -1 and pl > valuewhen_2 ? na : zz
+valuewhen_3 = ta.valuewhen(hl, hl, 1)
+valuewhen_4 = ta.valuewhen(zz, zz, 1)
+zz := ph and hl == 1 and valuewhen_3 == 1 and ph < valuewhen_4 ? na : zz
+
+valuewhen_5 = ta.valuewhen(hl, hl, 1)
+valuewhen_6 = ta.valuewhen(zz, zz, 1)
+hl := hl == -1 and valuewhen_5 == 1 and zz > valuewhen_6 ? na : hl
+valuewhen_7 = ta.valuewhen(hl, hl, 1)
+valuewhen_8 = ta.valuewhen(zz, zz, 1)
+hl := hl == 1 and valuewhen_7 == -1 and zz < valuewhen_8 ? na : hl
+zz := na(hl) ? na : zz
+
+findprevious() =>  // finds previous three points (b, c, d, e)
+    ehl = hl == 1 ? -1 : 1
+    loc1 = 0.0
+    loc2 = 0.0
+    loc3 = 0.0
+    loc4 = 0.0
+    xx = 0
+    for x = 1 to 1000 by 1
+        if hl[x] == ehl and not na(zz[x])
+            loc1 := zz[x]
+            xx := x + 1
+            break
+    ehl := hl
+    for x = xx to 1000 by 1
+        if hl[x] == ehl and not na(zz[x])
+            loc2 := zz[x]
+            xx := x + 1
+            break
+    ehl := hl == 1 ? -1 : 1
+    for x = xx to 1000 by 1
+        if hl[x] == ehl and not na(zz[x])
+            loc3 := zz[x]
+            xx := x + 1
+            break
+    ehl := hl
+    for x = xx to 1000 by 1
+        if hl[x] == ehl and not na(zz[x])
+            loc4 := zz[x]
+            break
+    [loc1, loc2, loc3, loc4]
+
+float a = na
+float b = na
+float c = na
+float d = na
+float e = na
+if not na(hl)
+    [loc1, loc2, loc3, loc4] = findprevious()
+    a := zz
+    b := loc1
+    c := loc2
+    d := loc3
+    e := loc4
+    e
+
+_hh = zz and a > b and a > c and c > b and c > d
+_ll = zz and a < b and a < c and c < b and c < d
+_hl = zz and (a >= c and b > c and b > d and d > c and d > e or a < b and a > c and b < d)
+_lh = zz and (a <= c and b < c and b < d and d < c and d < e or a > b and a < c and b > d)
+
+plotshape(_hl, text='HL', title='Higher Low', style=shape.labelup, color=color.new(color.lime, 0), textcolor=color.new(color.black, 0), location=location.belowbar, offset=-rb)
+plotshape(_hh, text='HH', title='Higher High', style=shape.labeldown, color=color.new(color.lime, 0), textcolor=color.new(color.black, 0), location=location.abovebar, offset=-rb)
+plotshape(_ll, text='LL', title='Lower Low', style=shape.labelup, color=color.new(color.red, 0), textcolor=color.new(color.white, 0), location=location.belowbar, offset=-rb)
+plotshape(_lh, text='LH', title='Lower High', style=shape.labeldown, color=color.new(color.red, 0), textcolor=color.new(color.white, 0), location=location.abovebar, offset=-rb)
+
+float res1 = na
+float sup = na
+res1 := _lh ? zz : res1[1]
+sup := _hl ? zz : sup[1]
+
+int trend = na
+iff_3 = close < sup ? -1 : nz(trend[1])
+trend := close > res1 ? 1 : iff_3
+
+res1 := trend == 1 and _hh or trend == -1 and _lh ? zz : res1
+sup := trend == 1 and _hl or trend == -1 and _ll ? zz : sup
+rechange = res1 != res1[1]
+suchange = sup != sup[1]
+
+var line resline = na
+var line supline = na
+if showsupres
+    if rechange
+        line.set_x2(resline, bar_index)
+        line.set_extend(resline, extend=extend.none)
+        resline := line.new(x1=bar_index - rb, y1=res1, x2=bar_index, y2=res1, color=rescol, extend=extend.right, style=srlinestyle, width=srlinewidth)
+        resline
+
+    if suchange
+        line.set_x2(supline, bar_index)
+        line.set_extend(supline, extend=extend.none)
+        supline := line.new(x1=bar_index - rb, y1=sup, x2=bar_index, y2=sup, color=supcol, extend=extend.right, style=srlinestyle, width=srlinewidth)
+        supline
+
+iff_4 = trend == 1 ? bcolup : bcoldn
+
+
+
+
+rsi_len = 14//input(14)
+rsi = ta.rsi(close,rsi_len)
+
+adxlen = 14//input(14, title="ADX Smoothing")
+dilen = 14//input(14, title="DI Length")
+dirmov(len) =>
+	up = ta.change(high)
+	down = -ta.change(low)
+	plusDM = na(up) ? na : (up > down and up > 0 ? up : 0)
+	minusDM = na(down) ? na : (down > up and down > 0 ? down : 0)
+	truerange = ta.rma(ta.tr, len)
+	plus = fixnan(100 * ta.rma(plusDM, len) / truerange)
+	minus = fixnan(100 * ta.rma(minusDM, len) / truerange)
+	[plus, minus]
+adx(dilen, adxlen) =>
+	[plus, minus] = dirmov(dilen)
+	sum = plus + minus
+	adx = 100 * ta.rma(math.abs(plus - minus) / (sum == 0 ? 1 : sum), adxlen)
+sig = adx(dilen, adxlen)
+
+
+//52_weekhigh = request.security()
+
+
+
+
+
+
+lengthz = input.int(200, "DMA Length", minval=1)
+srcz = input(close, title="Source")
+dema = ta.ema(srcz, lengthz)
+// e2 = ta.ema(e1, lengthz)
+// dema = 2 * e1 - e2
+plot(dema, "DMA", color= close > dema ? color.lime : color.red,linewidth = 3)
+
+//comparativeTickerId = input.symbol('NSE:NIFTY', title='Comparative Symbol')
+
+
+Symbolhigh = request.security(comparativeTickerId, 'W', ta.highest(high,52))
+Symbollow = request.security(comparativeTickerId, 'W', ta.lowest(low,52))
+
+prv_day_high = request.security(syminfo.tickerid, 'D', high[1])
+prv_day_low = request.security(syminfo.tickerid, 'D', low[1])
+
+prv_month_high = request.security(syminfo.tickerid, 'M', high[1])
+prv_month_low = request.security(syminfo.tickerid, 'M', low[1])
+
+
+prv_week_high = request.security(syminfo.tickerid, 'W', high[1])
+prv_week_low = request.security(syminfo.tickerid, 'W', low[1])
+
+// x = ta.highest(Symbolhigh,252)
+// y = ta.lowest(Symbollow,252)
+
+var tLog = table.new(position = position.bottom_right, rows = 20, columns = 20, bgcolor = color.white, border_width=2,border_color =  color.green)
+table.cell(tLog, row = 0, column = 0, text = "RSI", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 0, column = 1, text = str.tostring(rsi,'#.##'), text_color = rsi > 50 ? color.lime : color.red,text_halign = text.align_left,text_valign = text.align_top)
+
+table.cell(tLog, row = 1, column = 0, text = "ADX", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 1, column = 1, text = str.tostring(sig,'#.##'), text_color = sig > 20 ? color.lime : color.red,text_halign = text.align_left,text_valign = text.align_top)
+
+
+table.cell(tLog, row = 2, column = 0, text = "DMA", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 2, column = 1, text = str.tostring(dema,'#.#'), text_color = dema < close ? color.lime : color.red,text_halign = text.align_left,text_valign = text.align_top)
+
+
+table.cell(tLog, row = 3, column = 0, text = "52 Week High", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 3, column = 1, text = str.tostring(Symbolhigh,'#.#'), text_color =  color.lime ,text_halign = text.align_left,text_valign = text.align_top)
+
+table.cell(tLog, row = 4, column = 0, text = "52 Week Low", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 4, column = 1, text = str.tostring(Symbollow,'#.#'), text_color =  color.red ,text_halign = text.align_left,text_valign = text.align_top)
+
+table.cell(tLog, row = 5, column = 0, text = "Previous Day High", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 5, column = 1, text = str.tostring(prv_day_high,'#.#'), text_color =  color.lime ,text_halign = text.align_left,text_valign = text.align_top)
+
+
+table.cell(tLog, row = 6, column = 0, text = "Previous Day Low", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 6, column = 1, text = str.tostring(prv_day_low,'#.#'), text_color =  color.red ,text_halign = text.align_left,text_valign = text.align_top)
+
+
+table.cell(tLog, row = 7, column = 0, text = "Previous Week High", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 7, column = 1, text = str.tostring(prv_week_high,'#.#'), text_color =  color.lime ,text_halign = text.align_left,text_valign = text.align_top)
+
+
+table.cell(tLog, row = 8, column = 0, text = "Previous Week Low", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 8, column = 1, text = str.tostring(prv_week_low,'#.#'), text_color =  color.red ,text_halign = text.align_left,text_valign = text.align_top)
+
+
+
+table.cell(tLog, row = 9, column = 0, text = "Previous Month High", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 9, column = 1, text = str.tostring(prv_month_high,'#.#'), text_color =  color.lime ,text_halign = text.align_left,text_valign = text.align_top)
+
+
+table.cell(tLog, row = 10, column = 0, text = "Previous Month Low", text_color = color.black,text_halign = text.align_left,text_valign = text.align_top)
+table.cell(tLog, row = 10, column = 1, text = str.tostring(prv_month_low,'#.#'), text_color =  color.red ,text_halign = text.align_left,text_valign = text.align_top)
+
+//table.cell_set_text(tLog, row = 0, column = 0, text = "sometext",text_a)
+
+
+len1 = 13//input(13)
+len2 = 21//input(21)
+
+ema11 = ta.ema(close,len1)
+ema22 = ta.ema(close,len2)
+
+
+
+buy = ta.crossover(ema11,ema22)
+sell =  ta.crossunder(ema11,ema22)
+
+
+
+// Draw upward arrow when bullish condition is met
+if (buy)
+    label.new(bar_index, low, text="↑", style=label.style_label_up, color=#4caf4f00, textcolor=color.green, size=size.huge)
+
